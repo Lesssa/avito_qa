@@ -25,6 +25,10 @@ class StatsResponse(BaseModel):
     contacts: int
 
 
+class ErrorResponse(BaseModel):
+    result: dict
+
+
 # Test setup
 @pytest.fixture
 def client():
@@ -127,21 +131,19 @@ def test_create_ad_success(client, ad_data):
             "viewCount": "100"
         }
     },
-    {},
-    {
-        "sellerID": 123433,
-        "name": "Another Ad",
-        "price": 50,
-        "statistics": {
-            "contacts": 5,
-            "likes": 50,
-            "viewCount": 100
-        }
-    }
+    {}
 ])
 def test_create_ad_failure(client, invalid_data):
     response = client.post("/api/1/item", json=invalid_data)
     assert response.status_code == 400
+    try:
+        error_response = ErrorResponse(**response.json())
+        assert "result" in error_response.dict()
+        assert isinstance(error_response.result, dict)
+        assert "message" in error_response.result
+        assert "messages" in error_response.result
+    except ValidationError as e:
+        pytest.fail(f"Response validation failed: {e}")
 
 
 # 2. Get Ad by ID
@@ -160,14 +162,22 @@ def test_get_ad_success(client, ad_id):
 
 
 @pytest.mark.parametrize("ad_id", [None, "abc"])
-def test_create_ad_failure(client, ad_id):
+def test_get_ad_failure(client, ad_id):
     response = client.get(f"/api/1/item/{ad_id}")
     assert response.status_code == 400
+    try:
+        error_response = ErrorResponse(**response.json())
+        assert "result" in error_response.dict()
+        assert isinstance(error_response.result, dict)
+        assert "message" in error_response.result
+        assert "messages" in error_response.result
+    except ValidationError as e:
+        pytest.fail(f"Response validation failed: {e}")
 
 
 # 3. Get Ads by SellerID
-@pytest.mark.parametrize("seller_id", [265738, 438285, 1111111111111111111])
-def test_get_ads_by_seller(client, seller_id):
+@pytest.mark.parametrize("seller_id", [265738, 438285])
+def test_get_ads_by_seller_success(client, seller_id):
     response = client.get(f"/api/1/{seller_id}/item")
     assert response.status_code == 200
     ads = response.json()
@@ -179,15 +189,23 @@ def test_get_ads_by_seller(client, seller_id):
             pytest.fail(f"Ad validation failed: {e}")
 
 
-@pytest.mark.parametrize("seller_id", [None, "abc"])
-def test_create_ad_failure(client, seller_id):
+@pytest.mark.parametrize("seller_id", [None, "abc", 1111111111111111111])
+def test_get_ads_by_seller_failure(client, seller_id):
     response = client.get(f"/api/1/{seller_id}/item")
     assert response.status_code == 400
+    try:
+        error_response = ErrorResponse(**response.json())
+        assert "result" in error_response.dict()
+        assert isinstance(error_response.result, dict)
+        assert "message" in error_response.result
+        assert "messages" in error_response.result
+    except ValidationError as e:
+        pytest.fail(f"Response validation failed: {e}")
 
 
 # 4. Get Stats by Ad ID
 @pytest.mark.parametrize("ad_id", [123456, 234567])
-def test_get_stats(client, ad_id):
+def test_get_stats_success(client, ad_id):
     response = client.get(f"/api/1/statistic/{ad_id}")
     if response.status_code == 200:
         try:
@@ -201,6 +219,14 @@ def test_get_stats(client, ad_id):
 
 
 @pytest.mark.parametrize("ad_id", [None, "abc"])
-def test_create_ad_failure(client, ad_id):
-    response = client.get(f"/api/1/statistic/{ad_id}/item")
+def test_get_stats_failure(client, ad_id):
+    response = client.get(f"/api/1/statistic/{ad_id}")
     assert response.status_code == 400
+    try:
+        error_response = ErrorResponse(**response.json())
+        assert "result" in error_response.dict()
+        assert isinstance(error_response.result, dict)
+        assert "message" in error_response.result
+        assert "messages" in error_response.result
+    except ValidationError as e:
+        pytest.fail(f"Response validation failed: {e}")
